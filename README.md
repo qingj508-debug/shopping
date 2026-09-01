@@ -51,7 +51,7 @@ lilishop-ui-master/
 ## 运行要求
 
 - JDK 21、Maven 3.9+
-- MySQL 8.x（导入 `lilishop.sql` 初始化，注意按需脱敏）
+- MySQL 8.x（导入 `lilishop.sql` 初始化）
 - Redis 6+（默认 6379）
 - Nacos 集群（默认 8810 / 8820 / 8830 三节点）
 - 前端：Node 16+，各端目录下 `npm install && npm run serve`
