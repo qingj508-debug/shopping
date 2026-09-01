@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.0.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>cn.lili</groupId>
+    <artifactId>lili-shop-parent</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <properties>
+        <java.version>21</java.version>
+        <revision>4.3</revision>
+        <spring-cloud.version>2025.1.3</spring-cloud.version>
+        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
+        <nacos-client.version>3.1.1</nacos-client.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <skipTests>true</skipTests>
+        <docker-registry>registry.cn-beijing.aliyuncs.com/lili-images</docker-registry>
+        <images-version>1</images-version>
+        <alipay-sdk-version>4.22.32.ALL</alipay-sdk-version>
+        <mybatis-plus-version>3.5.15</mybatis-plus-version>
+        <Hutool-version>5.8.41</Hutool-version>
+        <TinyPinyin-verions>2.0.3.RELEASE</TinyPinyin-verions>
+        <jasypt-version>3.0.4</jasypt-version>
+        <neetl-version>2.9.10</neetl-version>
+        <lombok-version>1.18.30</lombok-version>
+        <redisson>3.52.0</redisson>
+
+        <aliyun-sdk-dysms-version>2.0.8</aliyun-sdk-dysms-version>
+        <aliyun-version>4.6.0</aliyun-version>
+        <aliyun-sdk-oss-version>3.14.0</aliyun-sdk-oss-version>
+        <aliyun-sdk-dysms-version>2.0.9</aliyun-sdk-dysms-version>
+        <jwt-version>0.13.0</jwt-version>
+        <druid-version>1.2.16</druid-version>
+        <simple-http-version>1.0.3</simple-http-version>
+        <antlr4-version>4.7.2</antlr4-version>
+        <antlr4-runtime-version>4.7.2</antlr4-runtime-version>
+
+        <userAgentUtils>1.21</userAgentUtils>
+        <poi-version>5.2.3</poi-version>
+        <poi-ooxml-version>5.2.3</poi-ooxml-version>
+        <zxing>3.5.0</zxing>
+        <xk-time>3.2.3</xk-time>
+        <commons-text>1.14.0</commons-text>
+        <enjoy.version>4.3</enjoy.version>
+        <spotify>1.2.2</spotify>
+
+        <owasp-java-html-sanitizer>20211018.2</owasp-java-html-sanitizer>
+        <minio.version>8.5.17</minio.version>
+        <huaweicloud-obs.version>3.25.5</huaweicloud-obs.version>
+        <cos.version>5.6.97</cos.version>
+        <tencentcloud.version>3.1.693</tencentcloud.version>
+        <kuaidi100-api.version>1.0.11</kuaidi100-api.version>
+        <fastjson.version>2.0.59</fastjson.version>
+        <okio.version>3.14.0</okio.version>
+        <okhttp.version>4.12.0</okhttp.version>
+    </properties>
+
+    <modules>
+        <module>common-core</module>
+        <module>common-api</module>
+        <module>common-system</module>
+        <module>goods-service</module>
+        <module>member-service</module>
+        <module>order-service</module>
+        <module>promotion-service</module>
+        <module>payment-service</module>
+        <module>store-service</module>
+        <module>system-service</module>
+        <module>statistics-service</module>
+        <module>im-module</module>
+        <module>gateway</module>
+        <module>manager-api</module>
+        <module>im-api</module>
+
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud 微服务版本管理 -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Spring Cloud Alibaba 微服务版本管理（Nacos / Sentinel / Seata） -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio-jvm</artifactId>
+                <version>${okio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okio</groupId>
+                <artifactId>okio</artifactId>
+                <version>${okio.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- 统一提供 Lombok（provided），各模块 @Data/@Slf4j 依赖此处理器 -->
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok-version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>maven-repository</id>
+            <url>file:///${project.basedir}/maven-repository</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <!-- Lombok 通过父 pom provided 依赖进入编译 classpath，无需 annotationProcessorPaths -->
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

@@ -1,0 +1,56 @@
+package cn.lili.modules.system.serviceimpl;
+
+import cn.lili.common.enums.ResultCode;
+import cn.lili.common.exception.ServiceException;
+import cn.lili.common.utils.StringUtils;
+import cn.lili.common.vo.PageVO;
+import cn.lili.modules.system.entity.dos.AppVersion;
+import cn.lili.modules.system.mapper.AppVersionMapper;
+import cn.lili.modules.system.service.AppVersionService;
+import cn.lili.mybatis.util.PageUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.stereotype.Service;
+
+
+/**
+ * APP版本控制业务层实现
+ *
+ * @author Chopper
+ * @since 2020/11/17 8:02 下午
+ */
+@Service
+public class AppVersionServiceImpl extends ServiceImpl<AppVersionMapper, AppVersion> implements AppVersionService {
+
+    @Override
+    public AppVersion getAppVersion(String appType) {
+        return this.baseMapper.getLatestVersion(appType);
+    }
+
+    @Override
+    public boolean checkAppVersion(AppVersion appVersion) {
+        if (null == appVersion) {
+            throw new ServiceException(ResultCode.APP_VERSION_PARAM_ERROR);
+        }
+        if (StringUtils.isBlank(appVersion.getType())) {
+            throw new ServiceException(ResultCode.APP_VERSION_TYPE_ERROR);
+        }
+        //检测版本是否存在（同类型APP下版本不允许重复）
+        if (null != this.getOne(new LambdaQueryWrapper<AppVersion>()
+                .eq(AppVersion::getVersion, appVersion.getVersion())
+                .eq(AppVersion::getType, appVersion.getType())
+                .ne(appVersion.getId() != null, AppVersion::getId, appVersion.getId()))) {
+            throw new ServiceException(ResultCode.APP_VERSION_EXIST);
+        }
+        return true;
+    }
+
+    @Override
+    public IPage<AppVersion> pageByType(String type, PageVO pageVO) {
+        LambdaQueryWrapper<AppVersion> wrapper = new LambdaQueryWrapper<AppVersion>()
+                .eq(StringUtils.isNotEmpty(type), AppVersion::getType, type)
+                .orderByDesc(AppVersion::getCreateTime);
+        return this.page(PageUtil.initPage(pageVO), wrapper);
+    }
+}

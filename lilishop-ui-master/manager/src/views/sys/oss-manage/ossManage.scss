@@ -1,0 +1,142 @@
+.search {
+  .oss-operation {
+    margin-bottom: 2vh;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+
+    button {
+      margin-right: 5px;
+    }
+  }
+}
+
+.none {
+  display: none;
+}
+
+.oss-manage-box {
+  .file-list {
+    height: 100%;
+    box-sizing: border-box;
+    border-right: 1px solid #e5e6eb;
+    padding: 20px 12px 28px;
+  }
+  .pic-list {
+    height: 100%;
+    box-sizing: border-box;
+    padding: 0 0 24px 0;
+  }
+  .img-box {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    align-content: flex-start;
+    margin-top: 20px;
+    .img-item {
+      width: 120px;
+      height: 158px;
+      box-sizing: border-box;
+      margin: 0 13px 8px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      .card {
+        width: 120px;
+        height: 120px;
+        border-radius: 8px;
+        border: 2px solid transparent;
+        overflow: hidden;
+        box-sizing: border-box;
+        position: relative;
+        img,
+        .card-media {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .card-file {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f5f7fa;
+          color: #909399;
+        }
+        .card-checkbox {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 1000;
+          height: auto;
+          margin: 0;
+
+          :deep(.el-checkbox__label) {
+            display: none;
+          }
+        }
+        .preview {
+          width: 100%;
+          height: 26px;
+          background-color: #ffffff;
+          color: #666666;
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          display: flex;
+          flex-wrap: nowrap;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.12);
+          > div {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+          }
+        }
+      }
+      .card:hover,
+      .custom-checkbox-card-checked {
+        border: 2px solid #ff5c58;
+      }
+      .oss-card-selectable {
+        cursor: pointer;
+      }
+      .text {
+        width: 120px;
+        height: 36px;
+        cursor: pointer;
+        color: #252931;
+        font-size: 14px;
+        line-height: 36px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: center;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+      }
+    }
+  }
+  .page-box {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  .pagination-box {
+    display: flex;
+    flex-direction: row-reverse;
+  }
+
+  .demo-tree-render .el-tree-node__label {
+    width: 94%;
+  }
+}
+

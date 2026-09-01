@@ -1,0 +1,84 @@
+server:
+  port: 8888
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+
+spring:
+  application:
+    name: buyer-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8810,127.0.0.1:8820,127.0.0.1:8830
+    gateway:
+      # Spring Cloud Gateway 5.0 property prefix (was spring.cloud.gateway in 4.x)
+      server:
+        webflux:
+          # dedupe CORS headers added by downstream services (common-core SecurityBean)
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origins: "*"
+                allowed-methods: "*"
+                allowed-headers: "*"
+          routes:
+            # specific paths first (gateway matches routes in order)
+            - id: buyer-logistics
+              uri: lb://order-service
+              predicates:
+                - Path=/buyer/other/logistics/**
+            - id: buyer-wallet-receipt
+              uri: lb://member-service
+              predicates:
+                - Path=/buyer/wallet/receipt/**
+            - id: buyer-wallet
+              uri: lb://payment-service
+              predicates:
+                - Path=/buyer/wallet/**
+            - id: buyer-member-withdraw
+              uri: lb://payment-service
+              predicates:
+                - Path=/buyer/member/withdrawApply/**
+            - id: buyer-trade-recharge
+              uri: lb://payment-service
+              predicates:
+                - Path=/buyer/trade/recharge/**
+            - id: buyer-member
+              uri: lb://member-service
+              predicates:
+                - Path=/buyer/passport/**,/buyer/member/**,/buyer/message/**,/buyer/members/**,/buyer/other/feedback/**,/buyer/other/wechat/**
+            - id: buyer-payment
+              uri: lb://payment-service
+              predicates:
+                - Path=/buyer/payment/**
+            - id: buyer-order
+              uri: lb://order-service
+              predicates:
+                - Path=/buyer/order/**,/buyer/trade/**
+            - id: buyer-goods
+              uri: lb://goods-service
+              predicates:
+                - Path=/buyer/goods/**,/buyer/other/article/**,/buyer/other/pageData/**
+            - id: buyer-promotion
+              uri: lb://promotion-service
+              predicates:
+                - Path=/buyer/promotion/**,/buyer/distribution/**,/buyer/live/**,/buyer/broadcast/**
+            - id: buyer-store
+              uri: lb://store-service
+              predicates:
+                - Path=/buyer/store/**
+            - id: buyer-system
+              uri: lb://system-service
+              predicates:
+                - Path=/buyer/common/**,/buyer/other/**,/files/**,/source/**,/MP_verify**

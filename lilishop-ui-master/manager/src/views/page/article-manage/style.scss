@@ -1,0 +1,16 @@
+:deep(.el-input) {
+  width: 200px !important;
+}
+
+.label-btns {
+  margin-left: 150px;
+}
+
+.el-form-item {
+  padding: 10px 0;
+}
+
+:deep(.el-form-item__content) {
+  margin-left: 0 !important;
+  display: flex;
+}

@@ -1,0 +1,195 @@
+﻿server:
+  servlet:
+    context-path: /
+
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      min-spare: 50
+      max: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+spring:
+
+  cache:
+    type: redis
+  # Redis
+  redis:
+    host: 192.168.0.108
+    port: 6379
+#    password: lilishop
+    lettuce:
+      pool:
+        # 连接池最大连接数（使用负值表示没有限制） 默认 8
+        max-active: 200
+        # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+        max-wait: 20
+        # 连接池中的最大空闲连�?默认 8
+        max-idle: 10
+        # 连接池中的最小空闲连�?默认 8
+        min-idle: 8
+  # 文件大小上传配置
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      #关闭jackson 对json做解�?
+      fail-on-empty-beans: false
+
+  datasource:
+    url: jdbc:mysql://192.168.0.108:30306/shopping?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+# 忽略鉴权url
+ignored:
+  urls:
+    - /editor-app/**
+    - /weixin/**
+    - /source/**
+    - /manager/passport/user/login
+    - /manager/passport/user/refresh/**
+    - /manager/other/customWords
+    - /v3/api-docs/**
+    - /swagger-ui/**
+    - /favicon.ico
+    - /static/**
+    - /public/**
+    - /resources/**
+    - /META-INF/resources/**
+
+# Swagger界面内容配置
+swagger:
+  title: lilishop API接口文档
+  description: lilishop Api Documentation
+  version: 4.2.2
+  termsOfServiceUrl: https://pickmall.cn
+  contact:
+    name: lili
+    url: https://pickmall.cn
+    email: admin@pickmall.com
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    #缓存开�?
+    cache-enabled: true
+    #日志
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 日志
+logging:
+  # 输出级别
+  level:
+    cn.lili: info
+  #    org.hibernate: debug
+  #    org.springframework: debug
+  file:
+    # 指定路径
+    path: logs
+  logback:
+    rollingpolicy:
+      # 最大保存天�?
+      max-history: 7
+      # 每个文件最大大�?
+      max-file-size: 5MB
+#加密参数
+jasypt:
+  encryptor:
+    password: lili
+
+
+lili:
+  #验证码设�?
+  verification-code:
+    #图形验证码有效时�?�?包含滑块验证码有效时间， 以及验证通过之后，缓存中存储的验证结果有效时�?
+    effectiveTime: 300
+    #水印
+    watermark: LILI-SHOP
+    #干扰项数�?最�? 默认0
+    interfereNum: 1
+    #允许误差像素
+    faultTolerant: 3
+  #短信模版配置
+  sms:
+    #登录
+    LOGIN: SMS_205755300
+    #注册
+    REGISTER: SMS_205755298
+    #找回密码
+    FIND_USER: SMS_205755301
+    #设置密码
+    UPDATE_PASSWORD: SMS_205755297
+    #支付密码
+    WALLET_PASSWORD: SMS_205755301
+  system:
+    isDemoSite: false
+    isTestModel: true
+  #     脱敏级别�?
+  #     0：不做脱敏处�?
+  #     1：管理端用户手机号等信息脱敏
+  #     2：商家端信息脱敏（为2时，表示管理端，商家端同时脱敏）
+    sensitiveLevel: 1
+
+  statistics:
+    # 在线人数统计 X 小时。这里设�?8，即统计过去48小时每小时在线人�?
+    onlineMember: 48
+    # 当前在线人数刷新时间间隔，单位秒，设置为600，则�?0分钟刷新一�?
+    currentOnlineUpdate: 600
+  #qq lbs 申请
+  lbs:
+    key: 4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT
+    sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
+  #域名
+  domain:
+    pc: http://192.168.0.116:8888
+    wap: http://192.168.0.116:8888
+    seller: http://192.168.0.116:8888
+    admin: http://192.168.0.116:8888
+  #api地址
+  api:
+    buyer: https://z171l91606.51mypc.cn
+    base: http://192.168.0.116:8888
+    manager: http://192.168.0.116:8888
+    seller: http://192.168.0.116:8888
+
+  # jwt 细节设定
+  jwt-setting:
+    # token过期时间（分钟）
+    tokenExpireTime: 30
+
+  # 使用Spring @Cacheable注解失效时间
+  cache:
+    # 过期时间 单位�?永久不过期设�?1
+    timeout: 1500
+  #多线程配�?
+  thread:
+    corePoolSize: 5
+    maxPoolSize: 50
+    queueCapacity: 50
+  data:
+    rocketmq:
+      promotion-topic: lili_promotion_topic
+      promotion-group: lili_promotion_group
+      goods-topic: lili_goods_topic
+      goods-group: lili_goods_group
+      order-topic: lili_order_topic
+      order-group: lili_order_group
+      member-topic: lili_member_topic
+      member-group: lili_member_group
+      notice-topic: lili_notice_topic
+      notice-group: lili_notice_group
+      notice-send-topic: lili_send_notice_topic
+      notice-send-group: lili_send_notice_group
+      after-sale-topic: lili_after_sale_topic
+      after-sale-group: lili_after_sale_group

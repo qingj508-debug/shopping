@@ -1,0 +1,592 @@
+<template>
+  <div style="height:auto;">
+    <div class="item-intro-show">
+      <div class="item-intro-detail" ref="itemIntroDetail">
+        <div class="item-intro-nav item-tabs">
+          <el-tabs v-model="activeDetailTab" @tab-click="(tab) => tabClick(tab.paneName)">
+            <el-tab-pane label="商品介绍" name="intro">
+              <div class="item-intro-img" ref="itemIntroGoods">
+                <div class="item-intro" v-html="skuDetail.intro" v-if="skuDetail.intro"></div>
+                <div v-else style="margin:20px;">暂无商品介绍</div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="商品评价" name="comment">
+              <div class="remarks-container" ref="itemGoodsComment">
+                <div class="remarks-analyse-box">
+                  <div class="remarks-analyse-goods">
+                    <el-progress type="circle" :percentage="Number(skuDetail.grade) || 0" color="#5cb85c" :width="120">
+                      <template #default>
+                        <span class="remarks-analyse-num">{{ skuDetail.grade }}%</span>
+                        <p class="remarks-analyse-title">好评率</p>
+                      </template>
+                    </el-progress>
+                  </div>
+                </div>
+                <div class="remarks-bar">
+                  <span @click="viewByGrade('')" :class="{selectedBar: commentParams.grade === ''}">全部({{commentTypeNum.all}})</span>
+                  <span @click="viewByGrade('GOOD')" :class="{selectedBar: commentParams.grade === 'GOOD'}">好评({{commentTypeNum.good}})</span>
+                  <span @click="viewByGrade('MODERATE')" :class="{selectedBar: commentParams.grade === 'MODERATE'}">中评({{commentTypeNum.moderate}})</span>
+                  <span @click="viewByGrade('WORSE')" :class="{selectedBar: commentParams.grade === 'WORSE'}">差评({{commentTypeNum.worse}})</span>
+                </div>
+                <div style="text-align: center;margin-top: 20px;" v-if="commentList.length === 0">
+                  暂无评价数据
+                </div>
+                <div class="remarks-box" v-for="(item,index) in commentList" :key="index" v-else>
+                  <div class="remarks-user">
+                    <el-avatar :src="item.memberProfile" :size="40" />
+                    <span class="remarks-user-name">{{ $filters.secrecyMobile(item.memberName ) }}</span>
+                  </div>
+                  <div class="remarks-content-box">
+                    <p>
+                      <el-rate
+                        disabled
+                        :model-value="Number(item.descriptionScore) || 0"
+                        allow-half
+                        class="remarks-star"
+                        :colors="['var(--theme-color)', 'var(--theme-color)', 'var(--theme-color)']"
+                      ></el-rate>
+                    </p>
+                    <p class="remarks-content">{{item.content}}</p>
+                    <div class="comment-img" v-if="item.images">
+                      <div v-for="(img, imgIndex) in item.images.split(',')"
+                       @click="previewImg(img, item)"
+                       :class="{borderColor:img === item.previewImg}"
+                       :key="imgIndex">
+                        <img :src="img" alt="">
+                      </div>
+                    </div>
+
+                    <div class="preview-img"  v-if="item.previewImg"  @click.prevent="hidePreviewImg(item)">
+                      <div>
+                        <span @click.stop="rotatePreviewImg(0, item)"><el-icon><Refresh /></el-icon>左转</span>
+                        <span @click.stop="rotatePreviewImg(1, item)"><el-icon><Refresh /></el-icon>右转</span>
+                      </div>
+                      <img :src="item.previewImg" :style="{transform:`rotate(${item.deg}deg)`}" width="198" alt="">
+                    </div>
+                    <p class="remarks-sub">
+                      <span class="remarks-item">{{item.goodsName}}</span>
+                      <span class="remarks-time">{{item.createTime}}</span>
+                    </p>
+
+                    <!-- 商家回复 -->
+                    <div class="reply" v-if="item.reply">
+                      <p>商家回复</p>
+                      <div>
+                        <p class="remarks-content">{{ item.reply }}</p>
+                        <div>
+                          <div class="comment-img" v-if="item.replyImage">
+                            <div
+                              v-for="(img, imgIndex) in item.replyImage.split(',')"
+                              :key="imgIndex"
+                              :class="{ borderColor: img === item.previewImg }"
+                              @click="previewImg(img, item)"
+                            >
+                              <img :src="img" alt="">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+                <div class="remarks-page">
+                  <el-pagination v-model:current-page="commentParams.pageNumber" v-model:page-size="commentParams.pageSize"
+                    :total="commentTotal" small
+                    @current-change="changePageNum"
+                    @size-change="changePageSize"
+                     layout="prev, pager, next"></el-pagination>
+                </div>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="商品参数">
+              <template v-if="goodsParamsList.length">
+                <div class="item-param-container">
+                  <div class="item-param-box" v-for="param in goodsParamsList" :key="param.paramId || param.paramName">
+                    <span class="item-param-title">{{ param.paramName }}：</span>
+                    <span class="item-param-content">{{ param.paramValue || '-' }}</span>
+                  </div>
+                </div>
+              </template>
+              <div v-else>暂无商品参数</div>
+            </el-tab-pane>
+          </el-tabs>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { Refresh } from '@element-plus/icons-vue';
+import { goodsComment, goodsCommentNum } from '@/api/member.js';
+export default {
+  components: { Refresh },
+  name: 'ShowGoodsDetail',
+  props: {
+    detail: { // 商品详情
+      type: Object,
+      default: null
+    }
+  },
+  data () {
+    return {
+      activeDetailTab: "intro",
+      commentList: [], // 评论列表
+      commentParams: { // 评论传参
+        pageNumber: 1,
+        pageSize: 10,
+        grade: '',
+        goodsId: ''
+      },
+      commentTypeNum: {}, // 评论数量，包括好中差分别的数量
+      commentTotal: 0, // 评论总数
+      onceFlag: true // 只调用一次
+    };
+  },
+  computed: {
+    // 商品详情
+    skuDetail () {
+      return this.detail.data;
+    },
+    goodsParamsList () {
+      const list = this.detail && Array.isArray(this.detail.goodsParamsDTOList) ? this.detail.goodsParamsDTOList : [];
+      const flat = [];
+
+      list.forEach((item) => {
+        if (!item) return;
+        if (Array.isArray(item.goodsParamsItemDTOList)) {
+          flat.push(...item.goodsParamsItemDTOList);
+        } else {
+          flat.push(item);
+        }
+      });
+
+      const cleaned = flat.filter((p) => p && (p.paramName || p.paramId));
+      const hasSort = cleaned.some((p) => p && p.sort !== undefined && p.sort !== null);
+      if (!hasSort) return cleaned;
+
+      return cleaned.slice().sort((a, b) => {
+        const sa = Number(a && a.sort) || 0;
+        const sb = Number(b && b.sort) || 0;
+        return sa - sb;
+      });
+    }
+  },
+  methods: {
+    changeHeight (name) { // 设置商品详情高度
+      const el = this.$refs[name];
+      const container = this.$refs.itemIntroDetail;
+      if (!el || !container) return;
+      let heightCss = window.getComputedStyle(el).height;
+      heightCss = parseInt(heightCss, 10) + 89;
+      if (Number.isNaN(heightCss)) return;
+      container.style.height = heightCss + 'px';
+    },
+    changePageNum (val) { // 修改评论页码
+      this.commentParams.pageNumber = val;
+      this.getList();
+    },
+    changePageSize (val) { // 修改评论页数
+      this.commentParams.pageNumber = 1;
+      this.commentParams.pageSize = val;
+      this.getList();
+    },
+    getList () { // 获取评论列表
+      this.commentParams.goodsId = this.skuDetail.goodsId;
+      goodsComment(this.commentParams).then(res => {
+        if (res.success) {
+          this.commentList = res.result.records;
+          this.commentTotal = res.result.total;
+        }
+      });
+      goodsCommentNum(this.skuDetail.goodsId).then(res => {
+        if (res.success) {
+          this.commentTypeNum = res.result;
+        }
+      });
+    },
+    viewByGrade (grade) { // 好中差评切换
+      this.commentParams['grade'] = grade;
+      this.commentParams.pageNumber = 1;
+      this.getList();
+    },
+    tabClick (name) { // 商品详情和评价之间的tab切换
+      if (name === "intro") {
+        this.$nextTick(() => {
+          this.changeHeight('itemIntroGoods')
+        });
+      } else {
+        this.$nextTick(() => {
+          this.changeHeight('itemGoodsComment')
+        });
+      }
+    },
+    previewImg (img, item) { // 预览图片
+      item['previewImg'] = img;
+      this.$nextTick(() => {
+        this.changeHeight('itemGoodsComment')
+      });
+    },
+    hidePreviewImg (item) { // 隐藏预览图片
+      item['previewImg'] = '';
+      this.$nextTick(() => {
+        this.changeHeight('itemGoodsComment')
+      });
+    },
+    rotatePreviewImg (type, item) { // 图片旋转
+      if (type) {
+        if (item.deg) {
+          item['deg'] = item.deg + 90;
+        } else {
+          item['deg'] = 90;
+        }
+      } else {
+        if (item.deg) {
+          item['deg'] = item.deg - 90;
+        } else {
+          item['deg'] = -90;
+        }
+      }
+    },
+    handleScroll () { // 监听页面滚动
+      if (this.onceFlag) {
+        this.$nextTick(() => {
+          this.changeHeight('itemIntroGoods')
+        });
+        this.onceFlag = false
+      }
+    }
+  },
+  mounted () {
+    this.$nextTick(() => { // 手动设置详情高度，解决无法撑开问题
+      setTimeout(() => {
+        this.changeHeight('itemIntroGoods');
+      }, 2000);
+    });
+    window.addEventListener('scroll', this.handleScroll)
+    this.getList();
+    if (this.skuDetail.grade === null || this.skuDetail.grade === undefined) {
+      this.skuDetail.grade = 100
+    }
+  },
+  beforeUnmount () {
+    window.removeEventListener('scroll', this.handleScroll);
+  }
+};
+</script>
+
+<style scoped lang="scss">
+.item-intro{
+  >img{
+    display:block;
+  }
+}
+/***************商品详情介绍和推荐侧边栏开始***************/
+.item-intro-show{
+
+  width: 1200px;
+  margin: 15px auto;
+  display: flex;
+  overflow-x: hidden;
+  flex-direction: row;
+
+}
+.item-intro-recommend{
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.item-intro-recommend-column{
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0px 0px 5px #999;
+}
+.item-recommend-title{
+  width: 100%;
+  height: 38px;
+  font-size: 16px;
+  line-height: 38px;
+  color: #fff;
+  background-color: $theme_color;
+  box-shadow: 0px 0px 5px $theme_color;
+  text-align: center;
+}
+.item-recommend-column{
+  margin-top: 15px;
+}
+.item-recommend-intro{
+  padding: 5px 15px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #999;
+  cursor: pointer;
+}
+.item-recommend-img{
+  width: 80%;
+  margin: 0px auto;
+  cursor: pointer;
+}
+.item-recommend-img img{
+  width: 100%;
+}
+.item-recommend-top-num{
+  color: #fff;
+  margin: 0px 2px;
+  padding: 1px 5px;
+  border-radius: 12px;
+  background-color: $theme_color;
+}
+.item-recommend-price{
+  color: $theme_color;
+  font-weight: bolder;
+}
+.item-intro-detail{
+  margin: 0;
+  width: 100%;
+}
+.item-intro-nav{
+  width: 100%;
+  height: 38px;
+  background-color: #F7F7F7;
+}
+.item-intro-nav ul{
+  margin: 0px;
+  padding: 0px;
+  list-style: none;
+}
+.item-intro-nav li{
+  float: left;
+  height: 100%;
+  width: 120px;
+  line-height: 38px;
+  text-align: center;
+  color: $theme_color;
+}
+.item-intro-nav li:first-child{
+  background-color: $theme_color;
+  color: #fff;
+}
+.item-intro-img {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 30px;
+  min-height: 300px;
+  :deep(img){
+    margin:0 auto;
+  }
+}
+.item-intro-img img{
+  max-width: 1000px;
+}
+/************* 商品参数 *************/
+.item-param-container {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 0 30px;
+}
+.item-param-box {
+  padding: 5px;
+  padding-left: 30px;
+  width: 100%;
+  height: 36px;
+  font-size: 14px;
+}
+.item-param-title {
+  color: #232323;
+}
+.item-param-content {
+  color: #999;
+}
+.remarks-title {
+  padding-left: 15px;
+  height: 36px;
+  font-size: 16px;
+  font-weight: bolder;
+  line-height: 36px;
+  color: #666666;
+  background-color: #F7F7F7;
+}
+.remarks-container {
+  box-sizing: border-box;
+  padding: 0 30px;
+}
+.remarks-analyse-box {
+  padding: 15px;
+  display: flex;
+  align-items: center;
+}
+.remarks-analyse-goods {
+  margin-left: 15px;
+  margin-right: 15px;
+}
+.remarks-analyse-num {
+  font-size: 26px;
+}
+.remarks-analyse-title {
+  font-size: 12px;
+  line-height: 20px;
+}
+.remarks-bar {
+  padding-left: 15px;
+  height: 36px;
+  line-height: 36px;
+  color: #666666;
+  background-color: #F7F7F7;
+  .selectedBar{
+    color: $theme_color;
+  }
+}
+.remarks-bar span {
+  margin-right: 15px;
+  &:hover{
+    color: $theme_color;
+    cursor: pointer;
+  }
+}
+.remarks-box {
+  padding: 15px;
+  display: flex;
+  flex-direction: row;
+  border-bottom: 1px #ccc dotted;
+}
+.remarks-user {
+  width: 180px;
+}
+.remarks-user-name {
+  padding-left: 15px;
+}
+.remarks-content-box {
+  width: calc(100% - 180px);
+  .comment-img{
+    display: flex;
+    .borderColor{
+      border-color: $theme_color;
+    }
+    div{
+      border: 1px solid #999;
+      margin-right: 5px;
+      width: 50px;
+      height: 50px;
+      overflow: hidden;
+      img{width: 100%;height: 100%;}
+    }
+  }
+  .preview-img{
+    position: relative;
+    border: 1px solid #eee;
+    margin: 10px 0;
+    width: 200px;
+
+    div{
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      z-index: 3;
+      span{
+        display: inline-block;
+        background-color: rgba(0,0,0,.5);
+        padding:3px 5px;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      span:nth-child(1) .el-icon {
+        transform: rotateY(180deg);
+      }
+    }
+
+  }
+}
+
+.remarks-content {
+  font-size: 14px;
+  color: #232323;
+  line-height: 28px;
+}
+.remarks-sub {
+  margin-top: 5px;
+  color: #ccc;
+}
+.remarks-time {
+  margin-left: 15px;
+}
+.remarks-page {
+  margin: 15px;
+  display: flex;
+  justify-content:flex-end;
+}
+/***************商品详情介绍和推荐侧边栏结束***************/
+/* 改变标签页样式 */
+.item-tabs {
+  :deep(.el-tabs__header) {
+    border: none;
+    margin: 0;
+    background-color: #f7f7f7;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    background-color: $theme_color !important;
+  }
+
+  :deep(.el-tabs__item) {
+    border-radius: 0;
+    color: #999;
+    height: 38px;
+    padding: 0 20px;
+
+    &:hover {
+      color: #999;
+    }
+  }
+
+  :deep(.el-tabs__nav) {
+    padding-left: 10px;
+  }
+
+  :deep(.el-tabs__item.is-active) {
+    color: $theme_color !important;
+    background-color: transparent;
+  }
+}
+:deep(.remarks-star.el-rate) {
+  --el-rate-fill-color: #{$theme_color};
+  --el-rate-disabled-fill-color: #{$theme_color};
+}
+:deep(.remarks-star .el-rate__icon.is-active) {
+  color: $theme_color !important;
+}
+table{
+  border-color:#efefef;
+  color: #999;
+  min-width: 30%;
+  margin-left: 30px;
+  font-size: 12px;
+  tr{
+    td:nth-child(1){
+      width: 100px;
+    }
+    td:nth-child(2){
+      padding-left: 20px;
+    }
+  }
+  td{
+    padding: 6px;
+  }
+}
+.goods-params {
+  display: flex;
+  border-bottom: 1px solid #eee;
+  margin-left: 30px;
+  span{color:#999}
+}
+.reply{
+  >*{
+    margin: 4px;
+  }
+
+}
+</style>

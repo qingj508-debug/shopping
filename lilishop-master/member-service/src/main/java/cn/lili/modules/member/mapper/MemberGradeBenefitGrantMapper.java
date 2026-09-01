@@ -1,0 +1,22 @@
+package cn.lili.modules.member.mapper;
+
+import cn.lili.modules.member.entity.dos.MemberGradeBenefitGrant;
+import cn.lili.modules.member.entity.vo.MemberBenefitGrantRecordVO;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+public interface MemberGradeBenefitGrantMapper extends BaseMapper<MemberGradeBenefitGrant> {
+
+    @Select("SELECT g.id, g.member_id AS memberId, g.grade_id AS gradeId, g.create_time AS createTime, "
+            + "m.mobile AS memberMobile, m.username AS memberUsername, mgr.grade_name AS gradeName "
+            + "FROM li_member_grade_benefit_grant g "
+            + "LEFT JOIN li_member m ON g.member_id = m.id "
+            + "LEFT JOIN li_member_grade mgr ON g.grade_id = mgr.id "
+            + "${ew.customSqlSegment}")
+    IPage<MemberBenefitGrantRecordVO> pageGrantRecords(IPage<MemberBenefitGrantRecordVO> page,
+                                                      @Param(Constants.WRAPPER) Wrapper<?> wrapper);
+}

@@ -1,0 +1,56 @@
+/.idea/
+target
+*.iml
+*.class
+.DS_Store
+*.classpath
+*.project
+*.log
+.settings/
+.factorypath
+
+log/
+logs/
+*.factorypath
+lili-shop/src/main/java/cn/lili/generator/CodeGenerator.java
+lili-logs
+/data/
+
+
+### STS ###
+.apt_generated
+.classpath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/
+
+### Cursor ###
+.cursor/
+
+### Local / generated ###
+META-INF/
+deploy-api.yml
+docker-image.sh
+
+### Sensitive: 支付宝沙箱密钥与一次性工具（含应用私钥，禁止提交） ###
+/DB/*.java
+/DB/*.class
+/DB/qcheck.txt
+/DB/alipay-sandbox-setting.sql

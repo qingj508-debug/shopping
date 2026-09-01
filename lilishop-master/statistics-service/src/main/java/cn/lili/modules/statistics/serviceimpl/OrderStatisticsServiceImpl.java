@@ -1,0 +1,452 @@
+package cn.lili.modules.statistics.serviceimpl;
+import cn.lili.feign.OrderItemClient;
+
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.lili.common.security.context.UserContext;
+import cn.lili.common.security.enums.UserEnums;
+import cn.lili.common.utils.CurrencyUtil;
+import cn.lili.common.utils.StringUtils;
+import cn.lili.common.vo.PageVO;
+import cn.lili.modules.order.cart.entity.enums.DeliveryMethodEnum;
+import cn.lili.modules.order.order.entity.dos.Order;
+import cn.lili.modules.order.order.entity.dos.OrderItem;
+import cn.lili.modules.order.order.entity.dto.PriceDetailDTO;
+import cn.lili.modules.order.order.entity.enums.FlowTypeEnum;
+import cn.lili.modules.order.order.entity.enums.OrderTypeEnum;
+import cn.lili.modules.order.order.entity.enums.PayStatusEnum;
+import cn.lili.modules.order.order.entity.enums.RefundStatusEnum;
+import cn.lili.modules.order.order.entity.vo.OrderSimpleVO;
+import cn.lili.modules.payment.entity.enums.PaymentMethodEnum;
+import cn.lili.modules.statistics.entity.dto.StatisticsQueryParam;
+import cn.lili.modules.statistics.entity.vo.OrderOverviewVO;
+import cn.lili.modules.statistics.entity.vo.OrderStatisticsDataVO;
+import cn.lili.modules.statistics.entity.vo.TradeTrendVO;
+import cn.lili.modules.statistics.mapper.OrderStatisticsMapper;
+import cn.lili.modules.statistics.service.OrderStatisticsService;
+import cn.lili.modules.statistics.service.PlatformViewService;
+import cn.lili.modules.statistics.service.StoreFlowStatisticsService;
+import cn.lili.modules.statistics.util.StatisticsDateUtil;
+import cn.lili.mybatis.util.PageUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+/**
+ * 订单统计业务层实现
+ *
+ * @author Bulbasaur
+ * @since 2020/12/9 17:16
+ */
+@Service
+public class OrderStatisticsServiceImpl extends ServiceImpl<OrderStatisticsMapper, Order> implements OrderStatisticsService {
+
+
+
+    /**
+     * 平台PV统计
+     */
+    @Autowired
+    private PlatformViewService platformViewService;
+    @Lazy
+    @Autowired
+    private StoreFlowStatisticsService storeFlowStatisticsService;
+    @Autowired
+    private OrderItemClient orderItemService;
+
+    @Override
+    public OrderOverviewVO overview(StatisticsQueryParam statisticsQueryParam) {
+        Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
+
+        OrderOverviewVO orderOverviewVO = new OrderOverviewVO();
+
+        /**
+         * 组织统计初始化
+         */
+        storeFlowStatisticsService.overview(dates, orderOverviewVO, statisticsQueryParam);
+        //访客数
+        Integer uv = platformViewService.countUv(statisticsQueryParam);
+        if (uv != null) {
+            orderOverviewVO.setUvNum(uv.longValue());
+        }
+
+        //数据运算（转换率，比例相关）
+        conversionRateOperation(orderOverviewVO);
+        return orderOverviewVO;
+    }
+
+    /**
+     * 运算转换率
+     *
+     * @param orderOverviewVO 订单统计视图
+     */
+    private void conversionRateOperation(OrderOverviewVO orderOverviewVO) {
+
+        //下单转换率 订单数/UV
+        Double orderConversionRate = CurrencyUtil.div(orderOverviewVO.getOrderNum(), orderOverviewVO.getUvNum(), 4);
+        if (orderConversionRate > 1) {
+            orderConversionRate = 1d;
+        }
+        orderOverviewVO.setOrderConversionRate(CurrencyUtil.mul(orderConversionRate, 100) + "%");
+        //付款转换率 付款订单数/订单数
+        Double paymentsConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(), orderOverviewVO.getOrderNum(), 4);
+        if (paymentsConversionRate > 1) {
+            paymentsConversionRate = 1d;
+        }
+        orderOverviewVO.setPaymentsConversionRate(CurrencyUtil.mul(paymentsConversionRate, 100) + "%");
+        //整体转换率 付款数/UV
+        Double overallConversionRate = CurrencyUtil.div(orderOverviewVO.getPaymentOrderNum(), orderOverviewVO.getUvNum(), 4);
+        if (overallConversionRate > 1) {
+            overallConversionRate = 1d;
+        }
+        orderOverviewVO.setOverallConversionRate(CurrencyUtil.mul(overallConversionRate, 100) + "%");
+    }
+
+    @Override
+    public long orderNum(String orderStatus) {
+        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(orderStatus), Order::getOrderStatus, orderStatus);
+        queryWrapper.eq(CharSequenceUtil.equals(Objects.requireNonNull(UserContext.getCurrentUser()).getRole().name(), UserEnums.STORE.name()),
+                Order::getStoreId, UserContext.getCurrentUser().getStoreId());
+        return this.count(queryWrapper);
+    }
+
+    @Override
+    public long orderNum(String paymentMethod, Date[] dates) {
+        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(CharSequenceUtil.isNotEmpty(paymentMethod), Order::getPaymentMethod, paymentMethod);
+        queryWrapper.between(Order::getCreateTime, dates[0], dates[1]);
+        return this.count(queryWrapper);
+    }
+
+
+    @Override
+    public Double getDiscountPrice(Date[] dates) {
+        // 参数校验
+        if (dates == null || dates.length < 2) {
+            return 0.0;
+        }
+        
+        // 构建查询条件：按时间范围过滤，排除全部退款的订单项（跨服务 Feign 调用）
+        List<OrderItem> orderItems = orderItemService.listByCreateTimeNotRefund(dates[0].getTime(), dates[1].getTime());
+        
+        if (orderItems.isEmpty()) {
+            return 0.0;
+        }
+        
+        Double totalDiscountPrice = 0.0;
+        
+        for (OrderItem orderItem : orderItems) {
+            PriceDetailDTO priceDetailDTO = orderItem.getPriceDetailDTO();
+            if (priceDetailDTO == null) {
+                continue;
+            }
+            
+            Double itemDiscountPrice = calculateItemDiscountPrice(priceDetailDTO);
+            
+            if (RefundStatusEnum.NO_REFUND.name().equals(orderItem.getIsRefund())) {
+                // 未退款：计算全部优惠金额
+                totalDiscountPrice = CurrencyUtil.add(totalDiscountPrice, itemDiscountPrice);
+            } else {
+                // 部分退款：按比例计算剩余优惠金额
+                Double remainingDiscountPrice = calculateRemainingDiscountPrice(
+                        itemDiscountPrice, orderItem.getNum(), orderItem.getReturnGoodsNumber());
+                totalDiscountPrice = CurrencyUtil.add(totalDiscountPrice, remainingDiscountPrice);
+            }
+        }
+        
+        return totalDiscountPrice;
+    }
+
+    @Override
+    public long getPayOrderNum(Date[] dates) {
+
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+
+        return this.baseMapper.getPayOrderNum(orderItemLambdaQueryWrapper);
+    }
+
+    @Override
+    public Double getPayOrderPrice(Date[] dates, PaymentMethodEnum paymentMethodEnum, DeliveryMethodEnum deliveryMethodEnum) {
+
+        //查看付款金额
+        QueryWrapper queryWrapper = Wrappers.query();
+
+        queryWrapper.between("oi.create_time", dates[0], dates[1]);
+        queryWrapper.ne("oi.is_refund", RefundStatusEnum.ALL_REFUND.name());
+
+        if(Objects.nonNull(paymentMethodEnum)){
+            queryWrapper.eq("o.payment_method",paymentMethodEnum.name());
+        }
+        if(Objects.nonNull(deliveryMethodEnum)){
+            if(DeliveryMethodEnum.VIRTUAL.equals(deliveryMethodEnum)){
+                queryWrapper.eq("o.order_type", OrderTypeEnum.VIRTUAL.name());
+            }else{
+                queryWrapper.eq("o.delivery_method",deliveryMethodEnum.name());
+            }
+
+        }
+        return this.baseMapper.getPayOrderPrice(queryWrapper);
+
+    }
+
+    @Override
+    public Double getGoodsPrice(Date[] dates) {
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.ne(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+
+        return this.baseMapper.getGoodsPrice(orderItemLambdaQueryWrapper);
+    }
+
+    @Override
+    public Double getFreight(Date[] dates) {
+
+        List<OrderItem> orderItems=orderItemService.listByCreateTimeNotRefund(dates[0].getTime(), dates[1].getTime());
+        Double freight=0D;
+        for (OrderItem orderItem:orderItems){
+            PriceDetailDTO priceDetailDTO=orderItem.getPriceDetailDTO();
+            freight=CurrencyUtil.add(freight,priceDetailDTO.getFreightPrice());
+        }
+        return freight;
+    }
+
+    @Override
+    public Double getDistribution(Date[] dates) {
+
+        List<OrderItem> orderItems=orderItemService.listByCreateTimeNotRefund(dates[0].getTime(), dates[1].getTime());
+        Double distributionCommission=0D;
+        for (OrderItem orderItem:orderItems){
+            PriceDetailDTO priceDetailDTO=orderItem.getPriceDetailDTO();
+            distributionCommission=CurrencyUtil.add(distributionCommission,priceDetailDTO.getDistributionCommission());
+        }
+        return distributionCommission;
+    }
+
+    @Override
+    public Long getRefundNum(Date[] dates) {
+        LambdaQueryWrapper<OrderItem> orderItemLambdaQueryWrapper=new LambdaQueryWrapper<>();
+
+        orderItemLambdaQueryWrapper.between(OrderItem::getCreateTime,dates[0], dates[1]);
+        orderItemLambdaQueryWrapper.eq(OrderItem::getIsRefund,RefundStatusEnum.ALL_REFUND.name());
+
+        return this.baseMapper.getPayOrderNum(orderItemLambdaQueryWrapper);
+    }
+
+    @Override
+    public Double getRefundPrice(Date[] dates) {
+
+        QueryWrapper queryWrapper = Wrappers.query();
+
+        queryWrapper.between("oi.create_time", dates[0], dates[1]);
+        queryWrapper.eq("oi.is_refund", RefundStatusEnum.ALL_REFUND.name());
+
+
+        return this.baseMapper.getRefundPrice(queryWrapper);
+    }
+
+    @Override
+    public Double getRefundRate(Date[] dates) {
+
+        QueryWrapper queryWrapper = Wrappers.query();
+
+        queryWrapper.between("create_time", dates[0], dates[1]);
+
+
+        Long orderNum= this.baseMapper.getPayOrderNum(queryWrapper);
+        return CurrencyUtil.mul(CurrencyUtil.div(this.getRefundNum(dates),orderNum),100);
+    }
+
+    /**
+     * 计算订单项的优惠金额
+     */
+    private Double calculateItemDiscountPrice(PriceDetailDTO priceDetailDTO) {
+        Double discountPrice = priceDetailDTO.getDiscountPrice() != null ? priceDetailDTO.getDiscountPrice() : 0.0;
+        Double couponPrice = priceDetailDTO.getCouponPrice() != null ? priceDetailDTO.getCouponPrice() : 0.0;
+        return CurrencyUtil.add(discountPrice, couponPrice);
+    }
+
+    /**
+     * 计算部分退款后的剩余优惠金额
+     */
+    private Double calculateRemainingDiscountPrice(Double totalDiscountPrice, Integer totalNum, Integer returnNum) {
+        if (totalNum == null || totalNum <= 0 || returnNum == null || returnNum < 0) {
+            return totalDiscountPrice;
+        }
+        
+        Integer remainingNum = totalNum - returnNum;
+        if (remainingNum <= 0) {
+            return 0.0;
+        }
+        
+        // 按剩余数量比例计算优惠金额
+        Double ratio = CurrencyUtil.div(remainingNum.doubleValue(), totalNum.doubleValue(), 4);
+        return CurrencyUtil.mul(totalDiscountPrice, ratio);
+    }
+
+
+    @Override
+    public List<OrderStatisticsDataVO> statisticsChart(StatisticsQueryParam statisticsQueryParam) {
+        Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
+        QueryWrapper queryWrapper = new QueryWrapper();
+        //已支付
+        queryWrapper.eq("pay_status", PayStatusEnum.PAID.name());
+        //选择商家判定
+        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+//      查询时间区间
+        queryWrapper.between("create_time", dates[0], dates[1]);
+//       格式化时间
+        queryWrapper.groupBy("DATE_FORMAT(create_time,'%Y-%m-%d')");
+        List<OrderStatisticsDataVO> orderStatisticsDataVOS = this.baseMapper.getOrderStatisticsData(queryWrapper);
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(dates[0]);
+
+        List<OrderStatisticsDataVO> result = new ArrayList<>();
+        //时间判定，将数据填充好
+        //如果当前的时间，在结束时间之前
+        while (calendar.getTime().before(dates[1])) {
+            OrderStatisticsDataVO item = null;
+            //判定是否已经有这一天的数据
+            for (OrderStatisticsDataVO orderStatisticsDataVO : orderStatisticsDataVOS) {
+                if (orderStatisticsDataVO.getCreateTime().equals(calendar.getTime())) {
+                    item = orderStatisticsDataVO;
+                }
+            }
+            //如果数据不存在，则进行数据填充
+            if (item == null) {
+                item = new OrderStatisticsDataVO();
+                item.setPrice(0d);
+                item.setCreateTime(calendar.getTime());
+            }
+            result.add(item);
+            //增加时间
+            calendar.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) + 1);
+        }
+        return result;
+    }
+
+    @Override
+    public IPage<OrderSimpleVO> getStatistics(StatisticsQueryParam statisticsQueryParam, PageVO pageVO) {
+
+        QueryWrapper<OrderSimpleVO> queryWrapper = new QueryWrapper<>();
+        Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
+        queryWrapper.between("o.create_time", dates[0], dates[1]);
+        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()),
+                "o.store_id", statisticsQueryParam.getStoreId());
+
+        queryWrapper.eq("o.delete_flag", false);
+        queryWrapper.groupBy("o.id");
+        queryWrapper.orderByDesc("o.id");
+        return this.baseMapper.queryByParams(PageUtil.initPage(pageVO), queryWrapper);
+    }
+
+    private QueryWrapper getQueryWrapper(StatisticsQueryParam statisticsQueryParam) {
+
+        QueryWrapper queryWrapper = Wrappers.query();
+
+        Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
+        queryWrapper.between("create_time", dates[0], dates[1]);
+
+        //设置店铺ID
+        queryWrapper.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+
+
+        //设置为付款查询
+        queryWrapper.eq("flow_type", FlowTypeEnum.PAY.name());
+
+        return queryWrapper;
+    }
+
+    @Override
+    public List<TradeTrendVO> tradeTrend(StatisticsQueryParam statisticsQueryParam) {
+        Date[] dates = StatisticsDateUtil.getDateArray(statisticsQueryParam);
+
+        QueryWrapper orderQw = Wrappers.query();
+        orderQw.between("create_time", dates[0], dates[1]);
+        orderQw.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+        orderQw.groupBy("DATE_FORMAT(create_time,'%Y-%m-%d')");
+        List<Map<String, Object>> orderGroup = this.baseMapper.groupOrderByDay(orderQw);
+
+        QueryWrapper payQw = Wrappers.query();
+        payQw.between("payment_time", dates[0], dates[1]);
+        payQw.eq("pay_status", PayStatusEnum.PAID.name());
+        payQw.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+        payQw.groupBy("DATE_FORMAT(payment_time,'%Y-%m-%d')");
+        List<Map<String, Object>> payGroup = this.baseMapper.groupPaymentByDay(payQw);
+
+        QueryWrapper refundQw = Wrappers.query();
+        refundQw.eq("service_status", "COMPLETE");
+        refundQw.apply("IFNULL(refund_time, update_time) BETWEEN {0} AND {1}", dates[0], dates[1]);
+        refundQw.eq(StringUtils.isNotEmpty(statisticsQueryParam.getStoreId()), "store_id", statisticsQueryParam.getStoreId());
+        refundQw.groupBy("DATE_FORMAT(IFNULL(refund_time, update_time),'%Y-%m-%d')");
+        List<Map<String, Object>> refundGroup = this.baseMapper.groupRefundByDay(refundQw);
+
+        Map<String, TradeTrendVO> dayMap = new LinkedHashMap<>();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(dates[0]);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        while (!calendar.getTime().after(dates[1])) {
+            String key = cn.hutool.core.date.DateUtil.formatDate(calendar.getTime());
+            TradeTrendVO vo = new TradeTrendVO();
+            vo.setDate(calendar.getTime());
+            dayMap.put(key, vo);
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+        }
+        fillTradeTrend(dayMap, orderGroup, true, false);
+        fillTradeTrend(dayMap, payGroup, false, true);
+        fillTradeRefund(dayMap, refundGroup);
+        return new ArrayList<>(dayMap.values());
+    }
+
+    private void fillTradeTrend(Map<String, TradeTrendVO> dayMap, List<Map<String, Object>> rows, boolean order, boolean pay) {
+        if (rows == null) {
+            return;
+        }
+        for (Map<String, Object> row : rows) {
+            String day = String.valueOf(row.get("create_time"));
+            TradeTrendVO vo = dayMap.get(day);
+            if (vo == null) {
+                continue;
+            }
+            Long num = row.get("order_num") == null ? 0L : Long.valueOf(row.get("order_num").toString());
+            Double price = row.get("price") == null ? 0D : Double.valueOf(row.get("price").toString());
+            if (order) {
+                vo.setOrderNum(num);
+                vo.setOrderAmount(price);
+            }
+            if (pay) {
+                vo.setPaymentOrderNum(num);
+                vo.setPaymentAmount(price);
+            }
+        }
+    }
+
+    private void fillTradeRefund(Map<String, TradeTrendVO> dayMap, List<Map<String, Object>> rows) {
+        if (rows == null) {
+            return;
+        }
+        for (Map<String, Object> row : rows) {
+            String day = String.valueOf(row.get("create_time"));
+            TradeTrendVO vo = dayMap.get(day);
+            if (vo == null) {
+                continue;
+            }
+            vo.setRefundOrderNum(row.get("order_num") == null ? 0L : Long.valueOf(row.get("order_num").toString()));
+            vo.setRefundOrderPrice(row.get("price") == null ? 0D : Double.valueOf(row.get("price").toString()));
+        }
+    }
+
+}

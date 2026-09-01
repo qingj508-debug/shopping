@@ -1,0 +1,202 @@
+.card {
+  margin: 10px 10px 20px;
+  padding: 0 20px 20px;
+  background: #fff;
+  border: 1px solid #e7e7e7;
+
+  border-radius: 0.4em;
+}
+
+h4 {
+  margin: 20px 0;
+  font-size: 18px;
+}
+:deep(.el-icon) {
+  margin-right: 10px;
+}
+.rate-box {
+  flex: 3.5;
+  margin-top: 50px;
+  display: flex;
+  justify-content: flex-end;
+  > div {
+    padding: 0 20px;
+
+    // border-left: 1px solid #ededed;
+    > h5 {
+
+      text-align: center;
+      margin: 10px 0;
+    }
+  }
+}
+.bold {
+  font-size: 18px;
+}
+.shop-box {
+  flex: 3;
+  display: flex;
+  font-size: 16px;
+  margin-top: 50px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-left: 20px;
+  > .box-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    justify-content: space-between;
+  }
+  > .title {
+    font-size: 30px;
+  }
+}
+.shop {
+  align-items: center;
+  justify-content: flex-start;
+}
+.notice-title {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+
+  a {
+    display: block;
+    color: #333;
+    font-weight: normal;
+    text-decoration: none;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.2s;
+
+    &:hover {
+      color: $theme_color;
+    }
+  }
+}
+.todo-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-group {
+  display: flex;
+  align-items: stretch;
+  background: #eee;
+  border-radius: 0.4em;
+  overflow: hidden;
+}
+
+.todo-item {
+  cursor: pointer;
+  flex: 1;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+
+  .todo-item-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+
+  span {
+    color: $theme_color;
+    font-size: 18px;
+    font-weight: bold;
+  }
+}
+
+.shop-logo {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid #ededed;
+  box-sizing: border-box;
+}
+
+.card {
+  box-shadow: 1px 3px 12px rgba($color: #e7e7e7, $alpha: 0.3);
+  border-radius: 0.4em;
+  box-shadow: 1px 3px 12px rgba($color: #e7e7e7, $alpha: 0.3);
+}
+
+.box-left {
+  flex: 8;
+}
+.box-right {
+  flex: 2;
+  margin-left: 20px;
+
+  h4 {
+    font-size: 16px;
+    margin: 16px 0 12px;
+  }
+}
+
+.overview-list {
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.overview-item {
+  flex: 1;
+  min-width: 180px;
+  padding: 16px 20px;
+  background: #f8f9fb;
+  border-radius: 0.4em;
+  cursor: pointer;
+  transition: 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+}
+
+.overview-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.overview-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: $theme_color;
+  margin-bottom: 6px;
+}
+
+.overview-sub {
+  font-size: 12px;
+  color: #999;
+}
+
+.compare-up {
+  color: #67c23a;
+  margin-left: 4px;
+}
+
+.compare-down {
+  color: #f56c6c;
+  margin-left: 4px;
+}
+
+.compare-flat {
+  color: #999;
+  margin-left: 4px;
+}
+
+.rank-tip {
+  font-size: 12px;
+  color: #999;
+  margin: -10px 0 16px;
+}

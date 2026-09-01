@@ -1,0 +1,170 @@
+server:
+  port: 8897
+
+  servlet:
+    context-path: /
+
+# actuator only exposes health endpoint.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spring:
+  application:
+    name: system-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8810,127.0.0.1:8820,127.0.0.1:8830
+  # file upload size config
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  cache:
+    type: redis
+  # jackson json config
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      # disable jackson fail on empty beans
+      fail-on-empty-beans: false
+
+  # Redis
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      lettuce:
+        pool:
+          # pool max active connections
+          max-active: 200
+          # pool max wait
+          max-wait: 20s
+          # pool max idle
+          max-idle: 10
+          # pool min idle
+          min-idle: 8
+
+  # datasource config (shared database)
+  datasource:
+    url: jdbc:mysql://localhost:3306/shopping?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+# urls that skip token auth
+ignored:
+  urls:
+    - /editor-app/**
+    - /MP_verify_qSyvBPhDsPdxvOhC.txt
+    - /weixin/**
+    - /source/**
+    - /buyer/payment/cashier/**
+    - /buyer/payment/cashierRefund/**
+    - /buyer/other/pageData/**
+    - /buyer/live/room/polling/**
+    - /buyer/other/article/**
+    - /buyer/other/wechat/h5/callback
+    - /buyer/goods/**
+    - /buyer/store/**
+    - /buyer/passport/connect/**
+    - /buyer/members/**
+    - /buyer/passport/member/**
+    - /buyer/passport/member/refresh/**
+    - /buyer/promotion/pintuan/**
+    - /buyer/promotion/seckill/**
+    - /buyer/promotion/pointsGoods/**
+    - /buyer/promotion/coupon
+    - /buyer/member/evaluation/*/goodsEvaluation
+    - /buyer/member/evaluation/*/evaluationNumber
+    - /buyer/other/appVersion/**
+    - /buyer/broadcast/studio/**
+    - /buyer/common/slider/**
+    - /buyer/common/sms/**
+    - /buyer/common/site/**
+    - /buyer/common/region/**
+    - /buyer/common/IM
+    - /swagger-ui.html
+    - /swagger-ui/**
+    - /v3/api-docs
+    - /v3/api-docs/**
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    # enable cache
+    cache-enabled: true
+
+# logging
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: info
+  file:
+    path: lili-logs
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  packages-to-scan: cn.lili.controller
+  paths-to-match: /buyer/**
+
+lili:
+  runtime:
+    mode: microservice
+  local-file:
+    path: data/uploads
+    url-prefix: /files
+  verification-code:
+    effectiveTime: 300
+    watermark: LILI-SHOP
+    interfereNum: 0
+    faultTolerant: 3
+    loginBypassEnabled: false
+  system:
+    isDemoSite: true
+  statistics:
+    # online member statistics hours
+    onlineMember: 48
+    # current online refresh interval seconds
+    currentOnlineUpdate: 600
+  # jwt config
+  jwt-setting:
+    # token expire time (minutes)
+    tokenExpireTime: 259200
+  # spring cache expire time (seconds, -1 = forever)
+  cache:
+    timeout: 1500
+  # async thread pool config
+  thread:
+    corePoolSize: 5
+    maxPoolSize: 50
+    queueCapacity: 50
+  data:
+    rocketmq:
+      promotion-topic: lili_promotion_topic
+      promotion-group: lili_promotion_group
+      goods-topic: lili_goods_topic
+      goods-group: lili_goods_group
+      order-topic: lili_order_topic
+      order-group: lili_order_group
+      member-topic: lili_member_topic
+      member-group: lili_member_group
+      store-topic: lili_store_topic
+      store-group: lili_store_group
+      notice-topic: lili_notice_topic
+      notice-group: lili_notice_group
+      notice-send-topic: lili_send_notice_topic
+      notice-send-group: lili_send_notice_group
+      after-sale-topic: lili_after_sale_topic
+      after-sale-group: lili_after_sale_group
+    send-message-timeout: 30000

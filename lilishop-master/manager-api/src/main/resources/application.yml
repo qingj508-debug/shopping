@@ -1,0 +1,203 @@
+server:
+  port: 8887
+
+  servlet:
+    context-path: /
+
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      min-spare: 50
+      max: 1000
+
+# actuator 仅暴露健康检查端点。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+spring:
+  application:
+    name: admin-api
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8810,127.0.0.1:8820,127.0.0.1:8830
+
+  cache:
+    type: redis
+  # Redis
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+#      password: lilishop
+      lettuce:
+        pool:
+          # 连接池最大连接数（使用负值表示没有限制）默认 8
+          max-active: 200
+          # 连接池最大阻塞等待时间（使用负值表示没有限制）默认 -1
+          max-wait: 20
+          # 连接池中的最大空闲连接，默认 8
+          max-idle: 10
+          # 连接池中的最小空闲连接，默认 8
+          min-idle: 8
+  # 文件大小上传配置
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      # 关闭 jackson 对 json 做解析
+      fail-on-empty-beans: false
+
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/shopping?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+# 忽略鉴权 url
+ignored:
+  urls:
+    - /editor-app/**
+    - /weixin/**
+    - /source/**
+    - /manager/passport/user/login
+    - /manager/passport/user/refresh/**
+    - /manager/other/customWords
+    - /manager/common/slider/**
+    - /manager/common/site/**
+    - /manager/common/region/**
+    - /store/passport/login/**
+    - /store/passport/login/refresh/**
+    - /store/common/slider/**
+    - /store/common/sms/**
+    - /store/common/site/**
+    - /store/common/region/**
+    - /store/common/IM
+    - /v3/api-docs
+    - /v3/api-docs/**
+    - /swagger-ui/**
+    - /swagger-ui.html
+    - /swagger-ui
+    - /swagger-ui/
+    - /favicon.ico
+    - /static/**
+    - /public/**
+    - /resources/**
+    - /META-INF/resources/**
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    # 缓存开启
+    cache-enabled: true
+    # 日志
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 日志
+logging:
+  config: classpath:logback-spring.xml
+  # 输出级别
+  level:
+    cn.lili: info
+  #    org.hibernate: debug
+  #    org.springframework: debug
+  file:
+    # 指定路径
+    path: lili-logs
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  packages-to-scan: cn.lili.controller.manager,cn.lili.controller.seller
+  paths-to-match:
+    - /manager/**
+    - /store/**
+  override-with-generic-response: false
+  logback:
+    rollingpolicy:
+      # 最大保存天数
+      max-history: 7
+      # 每个文件最大大小
+      max-file-size: 5MB
+# 加密参数
+jasypt:
+  encryptor:
+    password: lili
+
+lili:
+  runtime:
+    mode: microservice
+  security:
+    # manager-api 为平台管理+商家端聚合应用，无买家端接口，关闭买家鉴权配置避免 bean 冲突
+    buyer-auth-enabled: false
+  local-file:
+    path: data/uploads
+    url-prefix: /files
+  verification-code:
+    effectiveTime: 300
+    watermark: LILI-SHOP
+    interfereNum: 0
+    faultTolerant: 3
+    loginBypassEnabled: false
+  system:
+    isDemoSite: true
+    # 脱敏级别：
+    # 0：不做脱敏处理
+    # 1：管理端用户手机号等信息脱敏
+    # 2：商家端信息脱敏（为 2 时，表示管理端、商家端同时脱敏）
+    sensitiveLevel: 1
+  statistics:
+    # 在线人数统计 X 小时。这里设为 48，即统计过去 48 小时每小时在线人数
+    onlineMember: 48
+    # 当前在线人数刷新时间间隔，单位秒，设置为 600，则每 10 分钟刷新一次
+    currentOnlineUpdate: 600
+  # jwt 细节设定
+  jwt-setting:
+    # token 过期时间（分钟）
+    tokenExpireTime: 86400
+
+  # 使用 Spring @Cacheable 注解失效时间
+  cache:
+    # 过期时间，单位秒；永久不过期设为 -1
+    timeout: 1500
+  # 多线程配置
+  thread:
+    corePoolSize: 5
+    maxPoolSize: 50
+    queueCapacity: 50
+  schedule:
+    every-minute-cron: "0 * * * * ?"
+    every-hour-cron: "0 0 * * * ?"
+    every-day-cron: "0 0 0 * * ?"
+  message:
+    consumer:
+      enabled: true
+  data:
+    rocketmq:
+      promotion-topic: lili_promotion_topic
+      promotion-group: lili_promotion_group
+      goods-topic: lili_goods_topic
+      goods-group: lili_goods_group
+      order-topic: lili_order_topic
+      order-group: lili_order_group
+      member-topic: lili_member_topic
+      member-group: lili_member_group
+      store-topic: lili_store_topic
+      store-group: lili_store_group
+      notice-topic: lili_notice_topic
+      notice-group: lili_notice_group
+      notice-send-topic: lili_send_notice_topic
+      notice-send-group: lili_send_notice_group
+      after-sale-topic: lili_after_sale_topic
+      after-sale-group: lili_after_sale_group

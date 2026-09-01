@@ -1,0 +1,187 @@
+﻿server:
+  port: 8885
+
+  servlet:
+    context-path: /
+
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      min-spare: 50
+      max: 1000
+
+# 与Spring Boot 2一样，默认情况下，大多数端点都不通过http公开，我们公开了所有端点。对于生产，您应该仔细选择要公开的端点�?
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+spring:
+  application:
+    name: im-api
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8810,127.0.0.1:8820,127.0.0.1:8830
+
+  cache:
+    type: redis
+  # Redis
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+#      password: lilishop
+  # 文件大小上传配置
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  jackson:
+    time-zone: GMT+8
+    serialization:
+      #关闭jackson 对json做解�?
+      fail-on-empty-beans: false
+
+  # 数据源配�?
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/shopping?useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+# 忽略鉴权url
+ignored:
+  urls:
+    - /editor-app/**
+    - /MP_verify_qSyvBPhDsPdxvOhC.txt
+    - /weixin/**
+    - /source/**
+    - /manager/passport/user/login
+    - /manager/passport/user/refresh/**
+    - /manager/other/customWords
+    - /swagger-ui.html
+    - /swagger-ui/**
+    - /v3/api-docs
+    - /v3/api-docs/**
+
+# Swagger界面内容配置
+swagger:
+  title: lili API接口文档
+  description: lili Api Documentation
+  version: 1.0.0
+  termsOfServiceUrl: https://pickmall.cn
+  contact:
+    name: lili
+    url: https://pickmall.cn
+    email: admin@pickmall.com
+
+# Mybatis-plus
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    #缓存开�?
+    cache-enabled: true
+    #日志
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 日志
+logging:
+  config: classpath:logback-spring.xml
+  # 输出级别
+  level:
+    cn.lili: info
+  #    org.hibernate: debug
+  #    org.springframework: debug
+  file:
+    # 指定路径
+    path: lili-logs
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  packages-to-scan: cn.lili.controller
+  paths-to-match:
+    - /im/**
+    - /store/**
+  override-with-generic-response: false
+  logback:
+    rollingpolicy:
+      # 最大保存天�?
+      max-history: 7
+      # 每个文件最大大�?
+      max-file-size: 5MB
+#加密参数
+jasypt:
+  encryptor:
+    password: lili
+
+lili:
+  # im-api 聚合依赖 common-core，关闭买家端鉴权链（避免与 ImSecurityConfig 的同名 bean 冲突，与 manager-api 处理一致）
+  security:
+    buyer-auth-enabled: false
+  system:
+    isDemoSite: true
+    #     脱敏级别�?
+    #     0：不做脱敏处�?
+    #     1：管理端用户手机号等信息脱敏
+    #     2：商家端信息脱敏（为2时，表示管理端，商家端同时脱敏）
+    sensitiveLevel: 1
+  statistics:
+    # 在线人数统计 X 小时。这里设�?8，即统计过去48小时每小时在线人�?
+    onlineMember: 48
+    # 当前在线人数刷新时间间隔，单位秒，设置为600，则�?0分钟刷新一�?
+    currentOnlineUpdate: 600
+  #qq lbs 申请
+  lbs:
+    key: 4BYBZ-7MT6S-PUAOA-6BNWL-FJUD7-UUFXT
+    sk: zhNKVrJK6UPOhqIjn8AQvG37b9sz6
+  #域名
+  domain:
+    pc: https://pc.b2b2c.pickmall.cn
+    wap: https://m.b2b2c.pickmall.cn
+    store: https://store.b2b2c.pickmall.cn
+    admin: https://admin.b2b2c.pickmall.cn
+  #api地址
+  api:
+    buyer: /api
+    common: /api
+    manager: /api
+    store: /api
+
+  # jwt 细节设定
+  jwt-setting:
+    # token过期时间（分钟）
+    tokenExpireTime: 60
+
+  # 使用Spring @Cacheable注解失效时间
+  cache:
+    # 过期时间 单位�?永久不过期设�?1
+    timeout: 1500
+  #多线程配�?
+  thread:
+    corePoolSize: 5
+    maxPoolSize: 50
+    queueCapacity: 50
+  data:
+    rocketmq:
+      promotion-topic: lili_promotion_topic
+      promotion-group: lili_promotion_group
+      goods-topic: lili_goods_topic
+      goods-group: lili_goods_group
+      order-topic: lili_order_topic
+      order-group: lili_order_group
+      member-topic: lili_member_topic
+      member-group: lili_member_group
+      store-topic: lili_store_topic
+      store-group: lili_store_group
+      notice-topic: lili_notice_topic
+      notice-group: lili_notice_group
+      notice-send-topic: lili_send_notice_topic
+      notice-send-group: lili_send_notice_group
+      after-sale-topic: lili_after_sale_topic
+      after-sale-group: lili_after_sale_group

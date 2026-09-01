@@ -1,0 +1,18 @@
+# ============================================================
+# 根目录忽略规则（e:\gameproject\电商项目）
+# ============================================================
+
+# 编译产物与临时目录（历史遗留，非源码）
+/BOOT-INF/
+/META-INF/
+/j3test/
+/lili-logs/
+/D3Test.java
+
+# 完整数据库备份：包含会员/订单等业务数据与隐私，禁止提交
+/lilishop.sql
+
+# 原仓库推送脚本：指向 lilishop/lilishop 与 gitee，避免误推
+lilishop-master/pushGithub.sh
+lilishop-ui-master/pushGithub.sh
+lilishop-ui-master/docker-push.sh
